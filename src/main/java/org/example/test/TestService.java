@@ -1,6 +1,6 @@
 package org.example.test;
 
-import org.example.component.Component;
+import org.example.annotation.Component;
 
 @Component
 public class TestService {

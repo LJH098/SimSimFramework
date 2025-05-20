@@ -1,5 +1,7 @@
 package org.example.component;
 
+import org.example.annotation.Component;
+
 import java.io.File;
 import java.lang.reflect.Constructor;
 import java.net.URL;
