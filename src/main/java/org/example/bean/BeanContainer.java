@@ -2,6 +2,7 @@ package org.example.bean;
 
 import org.example.annotation.Autowired;
 import org.example.annotation.PostConstruct;
+import org.example.annotation.PreDestroy;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -131,17 +132,37 @@ public class BeanContainer {
         }
     }
 
-
-
-
-
     // 생명주기 후처리 등을 위한 접근용 메서드
     public Collection<Object> getAllBeans() {
         return singletonObjects.values();
     }
 
+    // 컨테이너 모든 값을 가져온다.
     public Collection<BeanDefinition> getAllDefinitions() {
         return definitionMap.values();
     }
+
+    // 컨테이너 종료시 호출메서드
+    public void close() {
+        for (Object bean : singletonObjects.values()) {
+            invokePreDestroy(bean);
+        }
+    }
+
+    private void invokePreDestroy(Object instance) {
+        for (Method method : instance.getClass().getDeclaredMethods()) {
+            if (method.isAnnotationPresent(PreDestroy.class)) {
+                try {
+                    method.setAccessible(true);
+                    // 해당 메서드 실행
+                    method.invoke(instance);
+                } catch (Exception e) {
+                    System.err.println("Error during @PreDestroy: " + e.getMessage());
+                }
+            }
+        }
+    }
+
+
 }
 

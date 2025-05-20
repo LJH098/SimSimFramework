@@ -1,7 +1,12 @@
 package org.example.component;
 
+import org.example.annotation.Autowired;
 import org.example.annotation.Component;
+import org.example.annotation.Scope;
+import org.example.bean.BeanContainer;
+import org.example.bean.BeanDefinition;
 
+import java.beans.Introspector;
 import java.io.File;
 import java.lang.reflect.Constructor;
 import java.net.URL;
@@ -9,7 +14,12 @@ import java.util.*;
 
 public class ComponentScanner {
 
-    private final Map<Class<?>, Object> container = new HashMap<>();
+    // IoC 컨테이너
+    private final BeanContainer container;
+
+    public ComponentScanner(BeanContainer container) {
+        this.container = container;
+    }
 
     public void scan(String basePackage) throws Exception {
         // basePackage의 .을 /로 변경
@@ -37,25 +47,34 @@ public class ComponentScanner {
                 Class<?> clazz = Class.forName(className);
 
                 if (clazz.isAnnotationPresent(Component.class)) {
-                    // 기본생성자 가져온다.
-                    Constructor<?> constructor = clazz.getDeclaredConstructor();
-                    // 사용가능하게 한다.
-                    constructor.setAccessible(true);
-                    // 객체 생성
-                    Object instance = constructor.newInstance();
-                    // 컨테이너에 넣는다.
-                    container.put(clazz, instance);
+                    String scope = "singleton"; // Scope 기본값 싱글톤
+                    // Scope 어노테이션이 있다면 해당 스코프를 저장한다.
+                    if (clazz.isAnnotationPresent(Scope.class)) {
+                        scope = clazz.getAnnotation(Scope.class).value();
+                    }
+                    // Autowired 붙은 생성자를 우선적 조회 후 없으면 기본생성자를 조회한다.
+                    Constructor<?> constructor = findAppropriateConstructor(clazz);
+                    // 클래스 이름의 첫 글자만 소문자로 변경한다(ex. SimSimClass -> simSimClass)
+                    String beanName = Introspector.decapitalize(clazz.getSimpleName());
+                    // Bean 명세를 정의한다.
+                    BeanDefinition def = new BeanDefinition(clazz, scope, beanName, constructor);
+                    // 컨테이너에 해당 빈을 등록한다.
+                    // TODO : 빈 등록순서를 정해야한다. 의존성에 따른 순서가 보장되어야함.
+                    container.registerBeanDefinition(def);
                 }
             }
         }
     }
 
-    public <T> T getBean(Class<T> type) {
-        return type.cast(container.get(type));
-    }
-
-    public Collection<Object> getAllBeans() {
-        return container.values();
+    // 클래스의 모든 생성자를 조회 후, Autowired 가 붙은 생성자가 있는 경우 해당 생성자 사용. 없는 경우 기본생성자를 반환한다.
+    private Constructor<?> findAppropriateConstructor(Class<?> clazz) throws NoSuchMethodException {
+        for (Constructor<?> ctor : clazz.getDeclaredConstructors()) {
+            if (ctor.isAnnotationPresent(Autowired.class)) {
+                return ctor;
+            }
+        }
+        // 기본 생성자 fallback
+        return clazz.getDeclaredConstructor();
     }
 }
 

@@ -20,6 +20,7 @@ public class SimSimFramework {
             container.registerBeanDefinition(defA);
 
             TestService testService = container.getBean(TestService.class);
+            container.close();
         }catch(Exception e){
             e.printStackTrace();
         }
