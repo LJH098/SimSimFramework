@@ -34,7 +34,7 @@ public class BeanContainer {
         typeIndex.computeIfAbsent(def.getType(), k -> new ArrayList<>()).add(name);
     }
 
-    // 빈 이름 기반 조회
+    // 빈 이름 기반 조회 및 생성
     public Object getBean(String name) {
         BeanDefinition def = definitionMap.get(name);
         if (def == null) throw new RuntimeException("No such bean: " + name);
