@@ -1,6 +1,11 @@
 package org.example.bean;
 
+import org.example.annotation.Autowired;
+import org.example.annotation.PostConstruct;
+
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -54,12 +59,81 @@ public class BeanContainer {
     // Bean 인스턴스 생성
     private Object createBean(BeanDefinition def) {
         try {
-            Constructor<?> ctor = def.getConstructor();
-            return ctor.newInstance(); // DI는 아직 안함
+            // 생성할 빈 내부에 Autowired 어노테이션이 붙어있는 생성자 조회
+            Constructor<?> constructor = findAutowiredConstructor(def.getType());
+            Object instance;
+
+            // 생성자 조회 성공
+            if (constructor != null) {
+                // DI할 빈의 생성자 파라미터 타입 조회 후, 해당 타입에 맞는 빈을 컨테이너에서 조회한 후 Array로 만든다.
+                Object[] args = Arrays.stream(constructor.getParameterTypes())
+                        .map(this::getBean)
+                        .toArray();
+                // 생성자 사용가능 처리
+                constructor.setAccessible(true);
+                // 빈 인스턴스 생성
+                instance = constructor.newInstance(args);
+            } else { // 생성자 조회 실패
+                // 기본 생성자 조회
+                Constructor<?> defaultCtor = def.getConstructor();
+                defaultCtor.setAccessible(true);
+                instance = defaultCtor.newInstance();
+            }
+
+            // 2. 필드 주입
+            injectFields(instance);
+
+            // 3. 생명주기 콜백 (@PostConstruct)
+            invokePostConstruct(instance);
+
+            return instance;
+
         } catch (Exception e) {
             throw new RuntimeException("Failed to create bean: " + def.getName(), e);
         }
     }
+
+    // Autowired 어노테이션을 사용한 필드 객체의 생성자를 조회한다.
+    private Constructor<?> findAutowiredConstructor(Class<?> clazz) {
+        // 모든 생성자를 조회한다.
+        for (Constructor<?> constructor : clazz.getDeclaredConstructors()) {
+            // 생성자에 Autowired 어노테이션이 존재하는 경우.
+            if (constructor.isAnnotationPresent(Autowired.class)) {
+                return constructor;
+            }
+        }
+        return null;
+    }
+
+    // 생성한 빈에 대한 필드를 주입한다
+    private void injectFields(Object instance) throws IllegalAccessException {
+        // 생성한 빈에 대한 필드들을 조회한다.
+        for (Field field : instance.getClass().getDeclaredFields()) {
+            // 필드에 Autowired 어노테이션이 붙어잇다면?
+            if (field.isAnnotationPresent(Autowired.class)) {
+                // 타입 가져온다
+                Class<?> depType = field.getType();
+                // 타입에 대한 빈 조회한다.
+                Object dependency = getBean(depType);
+                field.setAccessible(true);
+                // 필드 주입
+                field.set(instance, dependency);
+            }
+        }
+    }
+    // PostConstruct 어노테이션이 붙은 메서드를 선처리 해준다.
+    private void invokePostConstruct(Object instance) throws Exception {
+        for (Method method : instance.getClass().getDeclaredMethods()) {
+            if (method.isAnnotationPresent(PostConstruct.class)) {
+                method.setAccessible(true);
+                method.invoke(instance);
+            }
+        }
+    }
+
+
+
+
 
     // 생명주기 후처리 등을 위한 접근용 메서드
     public Collection<Object> getAllBeans() {

@@ -1,16 +1,25 @@
 package org.example;
 
+import org.example.bean.BeanContainer;
+import org.example.bean.BeanDefinition;
 import org.example.component.ComponentScanner;
 import org.example.test.TestService;
+import org.example.test.TestServiceB;
+
+import java.lang.reflect.Constructor;
 
 public class SimSimFramework {
     public static void main(String[] args) throws Exception{
         try{
-//            ComponentScanner scanner = new ComponentScanner();
-//            scanner.scan("org.example"); // 스캔할 패키지
-//
-//            TestService service = scanner.getBean(TestService.class);
-//            service.sayHello();
+            BeanContainer container = new BeanContainer();
+
+            BeanDefinition defA = new BeanDefinition(TestService.class, "singleton", "testService", TestService.class.getConstructor());
+            BeanDefinition defB = new BeanDefinition(TestServiceB.class, "singleton", "testServiceB", TestServiceB.class.getConstructor());
+
+            container.registerBeanDefinition(defB);
+            container.registerBeanDefinition(defA);
+
+            TestService testService = container.getBean(TestService.class);
         }catch(Exception e){
             e.printStackTrace();
         }
