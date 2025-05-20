@@ -1,0 +1,73 @@
+package org.example.bean;
+
+import java.lang.reflect.Constructor;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class BeanContainer {
+
+    // Bean 정의 저장소(동시성 제어)
+    private final Map<String, BeanDefinition> definitionMap = new ConcurrentHashMap<>();
+
+    // 싱글톤 인스턴스 저장소
+    private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>();
+
+    // 타입 기반 빠른 조회용: 타입 -> 빈 이름들(Qualifier어노테이션 사용하기 위한 List타입. Map으로 변경할까..?)
+    private final Map<Class<?>, List<String>> typeIndex = new ConcurrentHashMap<>();
+
+    public void registerBeanDefinition(BeanDefinition def) {
+        // 빈 이름 추출
+        String name = def.getName();
+
+        // BeanDefinition 등록
+        definitionMap.put(name, def);
+
+        // 타입 기반 인덱싱
+        // Key 가 존재할 경우: 아무런 작업을 하지 않고 기존에 존재하는 Key의 Value를 리턴한다.
+        // Key 가 존재하지 않는 경우: 람다식을 적용한 값을 해당 key에 저장한 후 newValue를 반환한다
+        typeIndex.computeIfAbsent(def.getType(), k -> new ArrayList<>()).add(name);
+    }
+
+    // 빈 이름 기반 조회
+    public Object getBean(String name) {
+        BeanDefinition def = definitionMap.get(name);
+        if (def == null) throw new RuntimeException("No such bean: " + name);
+
+        if (def.isSingleton()) {
+            return singletonObjects.computeIfAbsent(name, n -> createBean(def));
+        } else {
+            return createBean(def); // prototype은 매번 새로 생성
+        }
+    }
+
+    // 타입 기반 조회 (단일 매칭만 허용)
+    public <T> T getBean(Class<T> type) {
+        List<String> names = typeIndex.get(type);
+        if (names == null || names.isEmpty()) { // 조회 결과 없는 경우
+            throw new RuntimeException("No bean of type: " + type.getName());
+        } else if (names.size() > 1) { // 조회된 빈이 다수인 경우.
+            throw new RuntimeException("Multiple beans found for type: " + type.getName());
+        }
+        return type.cast(getBean(names.get(0)));
+    }
+
+    // Bean 인스턴스 생성
+    private Object createBean(BeanDefinition def) {
+        try {
+            Constructor<?> ctor = def.getConstructor();
+            return ctor.newInstance(); // DI는 아직 안함
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create bean: " + def.getName(), e);
+        }
+    }
+
+    // 생명주기 후처리 등을 위한 접근용 메서드
+    public Collection<Object> getAllBeans() {
+        return singletonObjects.values();
+    }
+
+    public Collection<BeanDefinition> getAllDefinitions() {
+        return definitionMap.values();
+    }
+}
+
