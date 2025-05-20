@@ -12,15 +12,13 @@ public class SimSimFramework {
     public static void main(String[] args) throws Exception{
         try{
             BeanContainer container = new BeanContainer();
-
-            BeanDefinition defA = new BeanDefinition(TestService.class, "singleton", "testService", TestService.class.getConstructor());
-            BeanDefinition defB = new BeanDefinition(TestServiceB.class, "singleton", "testServiceB", TestServiceB.class.getConstructor());
-
-            container.registerBeanDefinition(defB);
-            container.registerBeanDefinition(defA);
+            ComponentScanner scanner = new ComponentScanner(container);
+            scanner.scan("org.example"); // 패키지 전체 스캔
 
             TestService testService = container.getBean(TestService.class);
+            testService.doSomething();
             container.close();
+
         }catch(Exception e){
             e.printStackTrace();
         }
