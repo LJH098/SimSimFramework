@@ -1,12 +1,8 @@
 package org.example;
 
 import org.example.bean.BeanContainer;
-import org.example.bean.BeanDefinition;
 import org.example.component.ComponentScanner;
 import org.example.test.TestService;
-import org.example.test.TestServiceB;
-
-import java.lang.reflect.Constructor;
 
 public class SimSimFramework {
     public static void main(String[] args) throws Exception{
