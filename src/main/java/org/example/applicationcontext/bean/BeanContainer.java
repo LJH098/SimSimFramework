@@ -1,4 +1,4 @@
-package org.example.bean;
+package org.example.applicationcontext.bean;
 
 import org.example.annotation.Autowired;
 import org.example.annotation.PostConstruct;

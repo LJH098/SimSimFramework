@@ -3,8 +3,8 @@ package org.example.component;
 import org.example.annotation.Autowired;
 import org.example.annotation.Component;
 import org.example.annotation.Scope;
-import org.example.bean.BeanContainer;
-import org.example.bean.BeanDefinition;
+import org.example.applicationcontext.bean.BeanContainer;
+import org.example.applicationcontext.bean.BeanDefinition;
 
 import java.beans.Introspector;
 import java.io.File;

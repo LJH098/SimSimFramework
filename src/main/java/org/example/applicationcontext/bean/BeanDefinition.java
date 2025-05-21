@@ -1,4 +1,4 @@
-package org.example.bean;
+package org.example.applicationcontext.bean;
 
 import java.lang.reflect.Constructor;
 /**
