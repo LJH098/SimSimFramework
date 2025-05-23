@@ -3,6 +3,7 @@ package org.example.applicationcontext.bean;
 import org.example.annotation.Autowired;
 import org.example.annotation.PostConstruct;
 import org.example.annotation.PreDestroy;
+import org.example.processor.BeanPostProcessor;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -20,6 +21,9 @@ public class BeanContainer {
 
     // 타입 기반 빠른 조회용: 타입 -> 빈 이름들(Qualifier어노테이션 사용하기 위한 List타입. Map으로 변경할까..?)
     private final Map<Class<?>, List<String>> typeIndex = new ConcurrentHashMap<>();
+
+    // 빈 후처리기
+    private final List<BeanPostProcessor> beanPostProcessors = new ArrayList<>();
 
     public void registerBeanDefinition(BeanDefinition def) {
         // 빈 이름 추출
@@ -163,6 +167,8 @@ public class BeanContainer {
         }
     }
 
-
+    public void registerPostProcessor(BeanPostProcessor processor) {
+        beanPostProcessors.add(processor);
+    }
 }
 
